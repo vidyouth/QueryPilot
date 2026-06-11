@@ -49,13 +49,8 @@ class SQLGenerator:
         self.client = client
         self.model = model
 
-    def generate(self, question: str, schema: list[dict]) -> str:
-        schema_text = schema_to_text(schema)
-        user_prompt = (
-            f"Database schema:\n{schema_text}\n\n"
-            f"Question: {question}\n\n"
-            f"SQL:"
-        )
+    def _complete(self, user_prompt: str) -> str:
+        """Send one prompt to the model and return clean SQL."""
         response = self.client.chat.completions.create(
             model=self.model,
             temperature=0,
@@ -66,3 +61,24 @@ class SQLGenerator:
         )
         raw = response.choices[0].message.content or ""
         return strip_sql_fences(raw)
+
+    def generate(self, question: str, schema: list[dict]) -> str:
+        schema_text = schema_to_text(schema)
+        user_prompt = (
+            f"Database schema:\n{schema_text}\n\n"
+            f"Question: {question}\n\n"
+            f"SQL:"
+        )
+        return self._complete(user_prompt)
+
+    def fix(self, question: str, schema: list[dict], broken_sql: str, error: str) -> str:
+        schema_text = schema_to_text(schema)
+        user_prompt = (
+            f"Database schema:\n{schema_text}\n\n"
+            f"Question: {question}\n\n"
+            f"This SQL failed:\n{broken_sql}\n\n"
+            f"Error message: {error}\n\n"
+            f"Fix the query so it runs. Return only the corrected SQLite query.\n\n"
+            f"SQL:"
+        )
+        return self._complete(user_prompt)

@@ -59,3 +59,11 @@ class Database:
                     }
                 )
             return result
+        
+    def run_query(self, sql: str) -> dict:
+        """Run a SQL query and return its column names and rows."""
+        with self.connect() as conn:
+            cursor = conn.execute(sql)
+            columns = [col[0] for col in cursor.description] if cursor.description else []
+            rows = [dict(row) for row in cursor.fetchall()]
+        return {"columns": columns, "rows": rows}

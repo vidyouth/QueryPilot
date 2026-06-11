@@ -3,6 +3,7 @@ from fastapi import Depends, FastAPI
 from openai import OpenAI
 from pydantic import BaseModel
 
+from app.agent import QueryAgent
 from app.db import DB_PATH, Database
 from app.generator import DEFAULT_MODEL, SQLGenerator
 
@@ -13,14 +14,15 @@ app = FastAPI(title="QueryPilot")
 database = Database(DB_PATH)
 openai_client = OpenAI()
 generator = SQLGenerator(client=openai_client, model=DEFAULT_MODEL)
+agent = QueryAgent(generator=generator, database=database)
 
 
 def get_database() -> Database:
     return database
 
 
-def get_generator() -> SQLGenerator:
-    return generator
+def get_agent() -> QueryAgent:
+    return agent
 
 
 class ColumnInfo(BaseModel):
@@ -50,9 +52,19 @@ class QueryRequest(BaseModel):
     question: str
 
 
+class Attempt(BaseModel):
+    sql: str
+    error: str | None
+
+
 class QueryResponse(BaseModel):
     question: str
+    success: bool
     sql: str
+    columns: list[str]
+    rows: list[dict]
+    attempts: list[Attempt]
+    error: str | None
 
 
 @app.get("/health")
@@ -67,10 +79,7 @@ def read_schema(db: Database = Depends(get_database)) -> SchemaResponse:
 
 @app.post("/query")
 def query(
-    request: QueryRequest,
-    db: Database = Depends(get_database),
-    sql_generator: SQLGenerator = Depends(get_generator),
+    request: QueryRequest, query_agent: QueryAgent = Depends(get_agent)
 ) -> QueryResponse:
-    schema = db.get_schema()
-    sql = sql_generator.generate(request.question, schema)
-    return QueryResponse(question=request.question, sql=sql)
+    result = query_agent.answer(request.question)
+    return QueryResponse(**result)
