@@ -1,0 +1,122 @@
+{
+  "timestamp": "2026-06-11 18:21:00",
+  "summary": {
+    "total": 12,
+    "correct": 11,
+    "accuracy_percent": 91.7,
+    "first_try_correct": 11,
+    "recovered_by_retry": 0,
+    "avg_attempts": 1.08,
+    "avg_seconds": 2.71
+  },
+  "results": [
+    {
+      "question": "How many tracks are in the database?",
+      "difficulty": "easy",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 4.11,
+      "generated_sql": "SELECT COUNT(*) AS TrackCount FROM Track;",
+      "gold_sql": "SELECT COUNT(*) FROM Track"
+    },
+    {
+      "question": "How many customers are there?",
+      "difficulty": "easy",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.25,
+      "generated_sql": "SELECT COUNT(*) AS NumberOfCustomers FROM Customer;",
+      "gold_sql": "SELECT COUNT(*) FROM Customer"
+    },
+    {
+      "question": "How many genres are there?",
+      "difficulty": "easy",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.19,
+      "generated_sql": "SELECT COUNT(*) AS GenreCount FROM Genre;",
+      "gold_sql": "SELECT COUNT(*) FROM Genre"
+    },
+    {
+      "question": "How many invoices are there?",
+      "difficulty": "easy",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.06,
+      "generated_sql": "SELECT COUNT(*) AS InvoiceCount FROM Invoice;",
+      "gold_sql": "SELECT COUNT(*) FROM Invoice"
+    },
+    {
+      "question": "List the 3 artists with the most albums.",
+      "difficulty": "medium",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.35,
+      "generated_sql": "SELECT Artist.Name, COUNT(Album.AlbumId) AS AlbumCount\nFROM Artist\nJOIN Album ON Artist.ArtistId = Album.ArtistId\nGROUP BY Artist.ArtistId\nORDER BY AlbumCount DESC\nLIMIT 3;",
+      "gold_sql": "SELECT ar.Name, COUNT(al.AlbumId) AS album_count FROM Artist ar JOIN Album al ON ar.ArtistId = al.ArtistId GROUP BY ar.ArtistId ORDER BY album_count DESC LIMIT 3"
+    },
+    {
+      "question": "Which country has the most customers?",
+      "difficulty": "medium",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.25,
+      "generated_sql": "SELECT Country FROM Customer GROUP BY Country ORDER BY COUNT(CustomerId) DESC LIMIT 1;",
+      "gold_sql": "SELECT Country FROM Customer GROUP BY Country ORDER BY COUNT(*) DESC LIMIT 1"
+    },
+    {
+      "question": "How many tracks are longer than 5 minutes?",
+      "difficulty": "medium",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.66,
+      "generated_sql": "SELECT COUNT(*) FROM Track WHERE Milliseconds > 300000;",
+      "gold_sql": "SELECT COUNT(*) FROM Track WHERE Milliseconds > 300000"
+    },
+    {
+      "question": "How many tracks have no composer listed?",
+      "difficulty": "medium",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.13,
+      "generated_sql": "SELECT COUNT(*) FROM Track WHERE Composer IS NULL OR TRIM(Composer) = '';",
+      "gold_sql": "SELECT COUNT(*) FROM Track WHERE Composer IS NULL"
+    },
+    {
+      "question": "What is the name of the longest track?",
+      "difficulty": "medium",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.53,
+      "generated_sql": "SELECT Name FROM Track ORDER BY Milliseconds DESC LIMIT 1;",
+      "gold_sql": "SELECT Name FROM Track ORDER BY Milliseconds DESC LIMIT 1"
+    },
+    {
+      "question": "List the top 3 genres by number of tracks.",
+      "difficulty": "hard",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.82,
+      "generated_sql": "SELECT Genre.Name, COUNT(Track.TrackId) AS TrackCount\nFROM Genre\nJOIN Track ON Genre.GenreId = Track.GenreId\nGROUP BY Genre.GenreId\nORDER BY TrackCount DESC\nLIMIT 3;",
+      "gold_sql": "SELECT g.Name, COUNT(t.TrackId) AS track_count FROM Genre g JOIN Track t ON g.GenreId = t.GenreId GROUP BY g.GenreId ORDER BY track_count DESC LIMIT 3"
+    },
+    {
+      "question": "Which customer has spent the most money in total?",
+      "difficulty": "hard",
+      "correct": false,
+      "attempts": 2,
+      "seconds": 4.88,
+      "generated_sql": "SELECT c.CustomerId, c.FirstName, c.LastName, SUM(i.Total) AS TotalSpent\nFROM Customer c\nJOIN Invoice i ON c.CustomerId = i.CustomerId\nGROUP BY c.CustomerId, c.FirstName, c.LastName\nORDER BY TotalSpent DESC\nLIMIT 1;",
+      "gold_sql": "SELECT c.FirstName, c.LastName FROM Customer c JOIN Invoice i ON c.CustomerId = i.CustomerId GROUP BY c.CustomerId ORDER BY SUM(i.Total) DESC LIMIT 1"
+    },
+    {
+      "question": "Which genre has produced the most revenue from sales?",
+      "difficulty": "hard",
+      "correct": true,
+      "attempts": 1,
+      "seconds": 2.32,
+      "generated_sql": "SELECT Genre.Name\nFROM Genre\nJOIN Track ON Genre.GenreId = Track.GenreId\nJOIN InvoiceLine ON Track.TrackId = InvoiceLine.TrackId\nGROUP BY Genre.GenreId\nORDER BY SUM(InvoiceLine.UnitPrice * InvoiceLine.Quantity) DESC\nLIMIT 1;",
+      "gold_sql": "SELECT g.Name FROM Genre g JOIN Track t ON g.GenreId = t.GenreId JOIN InvoiceLine il ON t.TrackId = il.TrackId GROUP BY g.GenreId ORDER BY SUM(il.UnitPrice * il.Quantity) DESC LIMIT 1"
+    }
+  ]
+}

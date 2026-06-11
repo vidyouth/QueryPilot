@@ -1,0 +1,14 @@
+[
+  { "question": "How many tracks are in the database?", "difficulty": "easy", "sql": "SELECT COUNT(*) FROM Track" },
+  { "question": "How many customers are there?", "difficulty": "easy", "sql": "SELECT COUNT(*) FROM Customer" },
+  { "question": "How many genres are there?", "difficulty": "easy", "sql": "SELECT COUNT(*) FROM Genre" },
+  { "question": "How many invoices are there?", "difficulty": "easy", "sql": "SELECT COUNT(*) FROM Invoice" },
+  { "question": "List the 3 artists with the most albums.", "difficulty": "medium", "sql": "SELECT ar.Name, COUNT(al.AlbumId) AS album_count FROM Artist ar JOIN Album al ON ar.ArtistId = al.ArtistId GROUP BY ar.ArtistId ORDER BY album_count DESC LIMIT 3" },
+  { "question": "Which country has the most customers?", "difficulty": "medium", "sql": "SELECT Country FROM Customer GROUP BY Country ORDER BY COUNT(*) DESC LIMIT 1" },
+  { "question": "How many tracks are longer than 5 minutes?", "difficulty": "medium", "sql": "SELECT COUNT(*) FROM Track WHERE Milliseconds > 300000" },
+  { "question": "How many tracks have no composer listed?", "difficulty": "medium", "sql": "SELECT COUNT(*) FROM Track WHERE Composer IS NULL" },
+  { "question": "What is the name of the longest track?", "difficulty": "medium", "sql": "SELECT Name FROM Track ORDER BY Milliseconds DESC LIMIT 1" },
+  { "question": "List the top 3 genres by number of tracks.", "difficulty": "hard", "sql": "SELECT g.Name, COUNT(t.TrackId) AS track_count FROM Genre g JOIN Track t ON g.GenreId = t.GenreId GROUP BY g.GenreId ORDER BY track_count DESC LIMIT 3" },
+  { "question": "Which customer has spent the most money in total?", "difficulty": "hard", "sql": "SELECT c.FirstName, c.LastName FROM Customer c JOIN Invoice i ON c.CustomerId = i.CustomerId GROUP BY c.CustomerId ORDER BY SUM(i.Total) DESC LIMIT 1" },
+  { "question": "Which genre has produced the most revenue from sales?", "difficulty": "hard", "sql": "SELECT g.Name FROM Genre g JOIN Track t ON g.GenreId = t.GenreId JOIN InvoiceLine il ON t.TrackId = il.TrackId GROUP BY g.GenreId ORDER BY SUM(il.UnitPrice * il.Quantity) DESC LIMIT 1" }
+]
