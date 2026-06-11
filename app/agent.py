@@ -3,7 +3,7 @@ from app.generator import SQLGenerator
 
 
 class QueryAgent:
-    """Generates SQL, runs it, and retries by feeding errors back to the model."""
+    """Generates SQL, runs it, retries on errors, and explains the result."""
 
     def __init__(
         self, generator: SQLGenerator, database: Database, max_retries: int = 3
@@ -16,37 +16,38 @@ class QueryAgent:
         schema = self.database.get_schema()
         sql = self.generator.generate(question, schema)
         attempts: list[dict] = []
-        last_error = ""
 
         for attempt_number in range(self.max_retries + 1):
             try:
                 result = self.database.run_query(sql)
             except Exception as error:
-                last_error = str(error)
-                attempts.append({"sql": sql, "error": last_error})
+                attempts.append({"sql": sql, "error": str(error)})
                 if attempt_number < self.max_retries:
-                    sql = self.generator.fix(question, schema, sql, last_error)
+                    sql = self.generator.fix(question, schema, attempts)
                 continue
 
             # The query ran successfully.
             attempts.append({"sql": sql, "error": None})
+            explanation = self.generator.explain(question, sql)
             return {
                 "question": question,
                 "success": True,
                 "sql": sql,
+                "explanation": explanation,
                 "columns": result["columns"],
                 "rows": result["rows"],
                 "attempts": attempts,
                 "error": None,
             }
 
-        # Every attempt failed — we give up and report the last error.
+        # Every attempt failed.
         return {
             "question": question,
             "success": False,
             "sql": sql,
+            "explanation": None,
             "columns": [],
             "rows": [],
             "attempts": attempts,
-            "error": last_error,
+            "error": attempts[-1]["error"] if attempts else "Unknown error",
         }

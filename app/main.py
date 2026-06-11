@@ -61,6 +61,7 @@ class QueryResponse(BaseModel):
     question: str
     success: bool
     sql: str
+    explanation: str | None
     columns: list[str]
     rows: list[dict]
     attempts: list[Attempt]

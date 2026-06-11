@@ -3,6 +3,14 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+def _is_read_only(sql: str) -> bool:
+    """Allow only a single read-only SELECT (or WITH ... SELECT) statement."""
+    cleaned = sql.strip().rstrip(";").strip()
+    if ";" in cleaned:
+        return False  # blocks stacked statements like "SELECT ...; DROP ..."
+    lowered = cleaned.lower()
+    return lowered.startswith("select") or lowered.startswith("with")
+
 DB_PATH = Path("data/chinook.db")
 
 
@@ -60,10 +68,12 @@ class Database:
                 )
             return result
         
-    def run_query(self, sql: str) -> dict:
-        """Run a SQL query and return its column names and rows."""
+    def run_query(self, sql: str, max_rows: int = 1000) -> dict:
+        """Run a read-only query and return its column names and rows."""
+        if not _is_read_only(sql):
+            raise ValueError("Only single read-only SELECT queries are allowed.")
         with self.connect() as conn:
             cursor = conn.execute(sql)
             columns = [col[0] for col in cursor.description] if cursor.description else []
-            rows = [dict(row) for row in cursor.fetchall()]
+            rows = [dict(row) for row in cursor.fetchmany(max_rows)]
         return {"columns": columns, "rows": rows}

@@ -12,6 +12,10 @@ Rules:
 - Use only SELECT statements. Never modify data.
 - Return only the SQL query — no explanation, no comments, no markdown code fences."""
 
+EXPLAIN_PROMPT = """You explain SQL queries in plain English for someone who does not know SQL.
+
+Given a question and the SQL query that answers it, write 1-3 short sentences describing what the query does. Avoid technical jargon. Do not repeat the SQL."""
+
 
 def schema_to_text(schema: list[dict]) -> str:
     """Turn the structured schema into readable text for the prompt."""
@@ -43,24 +47,23 @@ def strip_sql_fences(text: str) -> str:
 
 
 class SQLGenerator:
-    """Turns a natural-language question + schema into a SQL query via an LLM."""
+    """Generates, fixes, and explains SQL queries via an LLM."""
 
     def __init__(self, client: OpenAI, model: str = DEFAULT_MODEL) -> None:
         self.client = client
         self.model = model
 
-    def _complete(self, user_prompt: str) -> str:
-        """Send one prompt to the model and return clean SQL."""
+    def _chat(self, system_prompt: str, user_prompt: str) -> str:
+        """Send one system+user prompt to the model and return its raw text."""
         response = self.client.chat.completions.create(
             model=self.model,
             temperature=0,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
         )
-        raw = response.choices[0].message.content or ""
-        return strip_sql_fences(raw)
+        return response.choices[0].message.content or ""
 
     def generate(self, question: str, schema: list[dict]) -> str:
         schema_text = schema_to_text(schema)
@@ -69,16 +72,25 @@ class SQLGenerator:
             f"Question: {question}\n\n"
             f"SQL:"
         )
-        return self._complete(user_prompt)
+        return strip_sql_fences(self._chat(SYSTEM_PROMPT, user_prompt))
 
-    def fix(self, question: str, schema: list[dict], broken_sql: str, error: str) -> str:
+    def fix(self, question: str, schema: list[dict], attempts: list[dict]) -> str:
         schema_text = schema_to_text(schema)
+        history = "\n\n".join(
+            f"Tried this query:\n{past['sql']}\nIt failed with: {past['error']}"
+            for past in attempts
+        )
         user_prompt = (
             f"Database schema:\n{schema_text}\n\n"
             f"Question: {question}\n\n"
-            f"This SQL failed:\n{broken_sql}\n\n"
-            f"Error message: {error}\n\n"
-            f"Fix the query so it runs. Return only the corrected SQLite query.\n\n"
+            f"The queries below were already tried and ALL failed. "
+            f"Do not repeat any of them:\n\n{history}\n\n"
+            f"Write a DIFFERENT SQLite query that avoids these errors. "
+            f"Return only the query.\n\n"
             f"SQL:"
         )
-        return self._complete(user_prompt)
+        return strip_sql_fences(self._chat(SYSTEM_PROMPT, user_prompt))
+
+    def explain(self, question: str, sql: str) -> str:
+        user_prompt = f"Question: {question}\n\nSQL query:\n{sql}\n\nExplanation:"
+        return self._chat(EXPLAIN_PROMPT, user_prompt).strip()
